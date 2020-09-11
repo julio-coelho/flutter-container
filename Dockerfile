@@ -71,7 +71,7 @@ RUN yes "y" | "${ANDROID_CMD_TOOLS}/tools/bin/sdkmanager" "platform-tools" > /de
 RUN yes "y" | "${ANDROID_CMD_TOOLS}/tools/bin/sdkmanager" "extras;android;m2repository" > /dev/null
 RUN yes "y" | "${ANDROID_CMD_TOOLS}/tools/bin/sdkmanager" "extras;google;m2repository" > /dev/null
 RUN yes "y" | "${ANDROID_CMD_TOOLS}/tools/bin/sdkmanager" "patcher;v4" > /dev/null
-RUN yes "y" | "${ANDROID_CMD_TOOLS}/tools/bin/sdkmanager" "system-images;android-30;google_apis_playstore;x86" > /dev/null
+RUN yes "y" | "${ANDROID_CMD_TOOLS}/tools/bin/sdkmanager" "system-images;android-30;google_apis_playstore;x86_64" > /dev/null
 RUN yes "y" | "${ANDROID_CMD_TOOLS}/tools/bin/sdkmanager" "emulator" > /dev/null
 RUN yes "y" | "${ANDROID_CMD_TOOLS}/tools/bin/sdkmanager" "--licenses" > /dev/null
 
