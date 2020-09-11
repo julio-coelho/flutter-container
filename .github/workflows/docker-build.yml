@@ -1,0 +1,14 @@
+name: Docker Build
+on:
+  push:
+    branches:
+      - master
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Run build
+        run: docker build . --file Dockerfile
