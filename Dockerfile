@@ -1,28 +1,15 @@
-# Flutter (https://flutter.dev) Development Environment for Linux
-# ===============================================================
-#
-# This environment passes all Linux Flutter Doctor checks and is sufficient
-# for building Android applications and running Flutter tests.
-#
-# To build iOS applications, a Mac development environment is necessary.
-
-# Note: updating past stretch (Debian 9) will bump Java past version 8,
-# which will break the Android SDK.
-
-# Based on Flutter Repo CI (https://github.com/flutter/flutter/blob/master/dev/ci/docker_linux/Dockerfile)
-
 FROM ubuntu:latest
 
-LABEL maintainer="Avenuesec"
-
-RUN apt-get update -y
-RUN apt-get upgrade -y
+LABEL maintainer="Avenue securities"
+LABEL repository="https://github.com/avenuesec/mobile_app.git"
+LABEL version="1.0.0"
 
 ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=America/Sao_Paulo
 
 # Install basics
-RUN apt-get install -y --no-install-recommends \
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends \
   git \
   wget \
   tree \
@@ -30,6 +17,9 @@ RUN apt-get install -y --no-install-recommends \
   zip \
   unzip \
   openjdk-8-jdk \
+  gcc \
+  lib32stdc++6 \
+  libstdc++6 \
   apt-transport-https \
   ca-certificates \
   gnupg \
@@ -45,49 +35,41 @@ RUN mkdir -p "${ANDROID_SDK_ROOT}"
 ENV ANDROID_CMD_TOOLS="${ANDROID_SDK_ROOT}/cmdline-tools"
 RUN mkdir -p "${ANDROID_CMD_TOOLS}"
 
-ARG ANDROID_SDK_VERSION="30.0.2"
+ARG BUILD_TOOLS_VERSION="29.0.3"
 
 ENV ANDROID_CMD_TOOLS_ARCHIVE="${ANDROID_CMD_TOOLS}/archive"
 RUN wget --progress=dot:giga "${ANDROID_CMD_TOOLS_URL}" -O "${ANDROID_CMD_TOOLS_ARCHIVE}"
 RUN unzip -q -d "${ANDROID_CMD_TOOLS}" "${ANDROID_CMD_TOOLS_ARCHIVE}"
 
 # Add Android to path
-ENV PATH="${ANDROID_SDK_ROOT}/tools:${PATH}"
-ENV PATH="${ANDROID_SDK_ROOT}/tools/bin:${PATH}"
+ENV PATH="${ANDROID_SDK_ROOT}/cmdline-tools/tools/bin:${PATH}"
 ENV PATH="${ANDROID_SDK_ROOT}/platform-tools:${PATH}"
-ENV PATH="${ANDROID_SDK_ROOT}/build-tools/${ANDROID_SDK_VERSION}:${PATH}"
+ENV PATH="${ANDROID_SDK_ROOT}/build-tools/${BUILD_TOOLS_VERSION}:${PATH}"
 ENV PATH="${ANDROID_SDK_ROOT}/emulator:${PATH}"
 
-# Silence warning.
+# Silence warning
 RUN mkdir -p ~/.android
 RUN touch ~/.android/repositories.cfg
 
 # Suppressing output of sdkmanager to keep log size down
-# (it prints install progress WAY too often).
-RUN yes "y" | "${ANDROID_CMD_TOOLS}/tools/bin/sdkmanager" "tools" > /dev/null
-RUN yes "y" | "${ANDROID_CMD_TOOLS}/tools/bin/sdkmanager" "build-tools;${ANDROID_SDK_VERSION}" > /dev/null
-RUN yes "y" | "${ANDROID_CMD_TOOLS}/tools/bin/sdkmanager" "platforms;android-30" > /dev/null
-RUN yes "y" | "${ANDROID_CMD_TOOLS}/tools/bin/sdkmanager" "platform-tools" > /dev/null
-RUN yes "y" | "${ANDROID_CMD_TOOLS}/tools/bin/sdkmanager" "extras;android;m2repository" > /dev/null
-RUN yes "y" | "${ANDROID_CMD_TOOLS}/tools/bin/sdkmanager" "extras;google;m2repository" > /dev/null
-RUN yes "y" | "${ANDROID_CMD_TOOLS}/tools/bin/sdkmanager" "patcher;v4" > /dev/null
-RUN yes "y" | "${ANDROID_CMD_TOOLS}/tools/bin/sdkmanager" "system-images;android-30;google_apis_playstore;x86_64" > /dev/null
-RUN yes "y" | "${ANDROID_CMD_TOOLS}/tools/bin/sdkmanager" "emulator" > /dev/null
-RUN yes "y" | "${ANDROID_CMD_TOOLS}/tools/bin/sdkmanager" "--licenses" > /dev/null
+RUN yes "y" | "sdkmanager" "build-tools;${BUILD_TOOLS_VERSION}" > /dev/null
+RUN yes "y" | "sdkmanager" "platforms;android-29" > /dev/null
+RUN yes "y" | "sdkmanager" "platform-tools" > /dev/null
+RUN yes "y" | "sdkmanager" "extras;google;google_play_services" > /dev/null
+RUN yes "y" | "sdkmanager" "patcher;v4" > /dev/null
+RUN yes "y" | "sdkmanager" "system-images;android-29;google_apis;x86_64" > /dev/null
+RUN yes "y" | "sdkmanager" "emulator" > /dev/null
+RUN yes "y" | "sdkmanager" "--licenses" > /dev/null
 
 RUN rm -rf "${ANDROID_CMD_TOOLS_ARCHIVE}"
 
-# Create Emulator flutter_emulator
-RUN avdmanager create avd -f -n flutter_emulator -k "system-images;android-30;google_apis_playstore;x86_64" -d pixel
-
-# Start Emulator to run doctor
-RUN emulator @flutter_emulator -noaudio -no-boot-anim -no-window -no-accel -memory 2048 -no-snapshot-load &
-
-# Wait the emulator warmup
-RUN sleep 600
+# Create & Start the Emulator once to make snapshot part of the image
+COPY start-emulator.sh /start-emulator.sh
+COPY config.ini /config.ini
+RUN /start-emulator.sh -c -s
 
 # Install Flutter
-ENV FLUTTER_URL="https://storage.googleapis.com/flutter_infra/releases/stable/linux/flutter_linux_1.20.3-stable.tar.xz"
+ENV FLUTTER_URL="https://storage.googleapis.com/flutter_infra/releases/stable/linux/flutter_linux_1.20.4-stable.tar.xz"
 ENV FLUTTER_ROOT="/opt/flutter"
 
 RUN mkdir -p "${FLUTTER_ROOT}/archive"
@@ -99,5 +81,11 @@ RUN rm "${FLUTTER_ARCHIVE}"
 # Add flutter executable to path
 ENV PATH="${PATH}:${FLUTTER_ROOT}/bin"
 
+# Run Flutter PreCache
+RUN ${FLUTTER_ROOT}/bin/flutter precache
+
 # Run Flutter Doctor to checkup
 RUN ${FLUTTER_ROOT}/bin/flutter doctor
+
+# Start Emulator
+CMD ./start-emulator.sh -s && /bin/bash
