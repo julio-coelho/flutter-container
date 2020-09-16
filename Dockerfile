@@ -24,7 +24,8 @@ RUN apt-get update && \
   ca-certificates \
   gnupg \
   xz-utils \
-  libglu1-mesa 
+  libglu1-mesa && \
+  apt-get clean
 
 # Install the Command Line Tools.
 ENV ANDROID_CMD_TOOLS_URL="https://dl.google.com/android/repository/commandlinetools-linux-6609375_latest.zip"
@@ -87,5 +88,5 @@ RUN ${FLUTTER_ROOT}/bin/flutter precache
 # Run Flutter Doctor to checkup
 RUN ${FLUTTER_ROOT}/bin/flutter doctor
 
-# Start Emulator
-CMD ./start-emulator.sh -s && /bin/bash
+# # Start Emulator
+# CMD ./start-emulator.sh -s && /bin/bash
